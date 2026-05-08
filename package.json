@@ -1,0 +1,18 @@
+{
+  "name": "album-extractor",
+  "version": "1.0.0",
+  "description": "Split concert/live recordings into clean, properly-named album tracks with cover art — for Apple Music (ALAC) or personal archive (FLAC)",
+  "main": "tool.js",
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": ["album", "concert", "live", "audio", "split", "flac", "alac", "apple-music", "ffmpeg"],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "genius-lyrics": "^4.4.7",
+    "sharp": "^0.34.5",
+    "sql.js": "^1.14.1"
+  }
+}

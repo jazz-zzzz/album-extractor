@@ -1,0 +1,106 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+
+const { discoverAlbum } = require('../src/discover-album');
+
+const repoRoot = path.resolve(__dirname, '..');
+const sampleAlbumDir = path.join(
+  repoRoot,
+  'albums',
+  'SAKANAQUARIUM 2024 turn'
+);
+
+test('discoverAlbum finds the turn sample inputs and output paths', () => {
+  const album = discoverAlbum(sampleAlbumDir);
+
+  assert.equal(album.albumDir, sampleAlbumDir);
+  assert.equal(album.albumName, 'SAKANAQUARIUM 2024 turn');
+  assert.match(album.sourceAudioPath, /turn.*\.flac$/i);
+  assert.match(album.coverPath, /cover\.jpg$/i);
+  assert.match(album.timestampsPath, /timestamps\.md$/i);
+  assert.match(album.outputTracksDir, /tracks$/i);
+  assert.match(album.outputAlacDir, /ALAC$/);
+  assert.match(album.manifestPath, /manifest\.json$/i);
+});
+
+test('discoverAlbum rejects duplicate matching files', (t) => {
+  const albumDir = createTempAlbum(t, {
+    'side-a.flac': '',
+    'side-b.flac': '',
+    'cover.jpg': '',
+    'timestamps.md': '',
+  });
+
+  assert.throws(
+    () => discoverAlbum(albumDir),
+    /Expected exactly one source audio.*found 2/i
+  );
+});
+
+test('discoverAlbum rejects missing required files', (t) => {
+  const albumDir = createTempAlbum(t, {
+    'live.flac': '',
+    'timestamps.md': '',
+  });
+
+  assert.throws(
+    () => discoverAlbum(albumDir),
+    /Missing cover art/i
+  );
+});
+
+test('discoverAlbum accepts png cover and singular timestamp filename', (t) => {
+  const albumDir = createTempAlbum(t, {
+    'live-set.wav': '',
+    'cover.png': '',
+    'timestamp.md': '',
+  });
+
+  const album = discoverAlbum(albumDir);
+
+  assert.match(album.sourceAudioPath, /live-set\.wav$/i);
+  assert.match(album.coverPath, /cover\.png$/i);
+  assert.match(album.timestampsPath, /timestamp\.md$/i);
+});
+
+test('discoverAlbum accepts video source files (mkv, mp4)', (t) => {
+  const albumDir = createTempAlbum(t, {
+    'concert.mkv': '',
+    'cover.jpg': '',
+    'timestamps.md': '',
+  });
+
+  const album = discoverAlbum(albumDir);
+  assert.match(album.sourceAudioPath, /concert\.mkv$/i);
+});
+
+test('discoverAlbum prefers single source when both audio and video exist', (t) => {
+  const albumDir = createTempAlbum(t, {
+    'concert.flac': '',
+    'concert.mkv': '',
+    'cover.jpg': '',
+    'timestamps.md': '',
+  });
+
+  assert.throws(
+    () => discoverAlbum(albumDir),
+    /Expected exactly one source/i
+  );
+});
+
+function createTempAlbum(t, files) {
+  const albumDir = fs.mkdtempSync(path.join(os.tmpdir(), 'discover-album-'));
+
+  t.after(() => {
+    fs.rmSync(albumDir, { recursive: true, force: true });
+  });
+
+  for (const [fileName, contents] of Object.entries(files)) {
+    fs.writeFileSync(path.join(albumDir, fileName), contents);
+  }
+
+  return albumDir;
+}
