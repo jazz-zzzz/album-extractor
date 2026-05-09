@@ -57,6 +57,7 @@ Split concert/live recordings into clean, properly-named album tracks. The AI ag
 4. **Every correction gets a note.** When a normalized field differs from the raw input, explain why in `notes`.
 5. **Code is deterministic, AI is fuzzy.** Scripts parse, split, and encode. AI searches, matches, and normalizes.
 6. **When uncertain, preserve the raw value.** Flag it "needs review" rather than guessing.
+7. **Preserve the intro.** If Track 1's start time is not 00:00, automatically prepend an "Intro" track from 00:00 to the first timestamp. The intro is part of the complete album experience — opening ambiance, crowd noise, overture, etc. Do NOT ask the user whether to include it; just do it.
 
 ## Pre-Flight Checks (before any command)
 
