@@ -34,8 +34,8 @@ Split concert/live recordings into clean, properly-named album tracks. The AI ag
               10-worker pool processes tracks in parallel.
               Each track: FLAC + ALAC encoded concurrently.
               Always overwrites — re-run produces fresh output.
-              After build, ask: "ALAC output is ready. Copy to Apple Music auto-import folder?"
-              If yes: `cp -r <ALAC_dir>/*.m4a "$HOME/Music/Apple Music/Media/Automatically Add to Apple Music/"`
+              After build, ask: "ALAC output is ready. Move to Apple Music auto-import folder?"
+              If yes: `mv <ALAC_dir>/*.m4a "$HOME/Music/Apple Music/Media/Automatically Add to Apple Music/"`
 ```
 
 ## Credibility Tiers
