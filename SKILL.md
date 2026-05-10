@@ -41,7 +41,7 @@ Split concert/live recordings into album tracks. AI handles research and normali
 ## Key Rules
 
 - **Lyrics are OFF by default.** Only fetch lyrics if the user explicitly requests it. Max 5 tracks per batch.
-- **Batch research.** Search for official setlist or product page first. Match all tracks at once before individual searches.
+- **Batch research.** Search for official setlist first. If not found, cross-reference with studio album tracklists. Only search individually as last resort.
 - **Show diff, not full JSON.** Use `summary` command for review. Only show changed/needs_review tracks.
 - **`normalizationStatus` and `trackKind`** fields carry state — use them instead of natural language explanations.
 - **Refer to `docs/reference.md`** for credibility tiers, manifest field tables, error codes, and Pre-Flight setup.
