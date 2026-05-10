@@ -201,11 +201,14 @@ async function buildAlbum({ manifestPath, sourceDuration, skipFlac, useRefalac }
 
   const baseDir = path.dirname(manifestPath);
   const alacDir = path.join(baseDir, 'ALAC');
+  // Clean old output to prevent stale files from masking failures
+  fs.rmSync(alacDir, { recursive: true, force: true });
   fs.mkdirSync(alacDir, { recursive: true });
 
   let flacDir = null;
   if (!skipFlac) {
     flacDir = path.join(baseDir, 'tracks');
+    fs.rmSync(flacDir, { recursive: true, force: true });
     fs.mkdirSync(flacDir, { recursive: true });
   }
 
@@ -226,6 +229,11 @@ async function buildAlbum({ manifestPath, sourceDuration, skipFlac, useRefalac }
 
   const built = results.filter((r) => r.status === 'built').length;
   const failures = results.filter((r) => r.status === 'failed');
+
+  if (failures.length > 0) {
+    const msg = failures.map((f) => `${f.track}: ${f.error}`).join('\n  ');
+    throw new Error(`${failures.length} track(s) failed:\n  ${msg}`);
+  }
 
   return { total, completed: built, failures };
 }

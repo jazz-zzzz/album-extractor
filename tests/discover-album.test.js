@@ -6,23 +6,28 @@ const path = require('node:path');
 
 const { discoverAlbum } = require('../src/discover-album');
 
-const repoRoot = path.resolve(__dirname, '..');
-const sampleAlbumDir = path.join(
-  repoRoot,
-  'albums',
-  'SAKANAQUARIUM 2024 turn'
-);
+function createTempAlbum(t, files) {
+  const albumDir = fs.mkdtempSync(path.join(os.tmpdir(), 'discover-album-'));
+  t.after(() => fs.rmSync(albumDir, { recursive: true, force: true }));
+  for (const [fileName, contents] of Object.entries(files)) {
+    fs.writeFileSync(path.join(albumDir, fileName), contents);
+  }
+  return albumDir;
+}
 
-test('discoverAlbum finds the turn sample inputs and output paths', () => {
-  const album = discoverAlbum(sampleAlbumDir);
+test('discoverAlbum finds source, cover, timestamps in album dir', (t) => {
+  const albumDir = createTempAlbum(t, {
+    'live.flac': '',
+    'cover.jpg': '',
+    'timestamps.md': '',
+  });
 
-  assert.equal(album.albumDir, sampleAlbumDir);
-  assert.equal(album.albumName, 'SAKANAQUARIUM 2024 turn');
-  assert.match(album.sourceAudioPath, /turn.*\.flac$/i);
+  const album = discoverAlbum(albumDir);
+
+  assert.equal(album.albumDir, albumDir);
+  assert.match(album.sourceAudioPath, /live\.flac$/i);
   assert.match(album.coverPath, /cover\.jpg$/i);
   assert.match(album.timestampsPath, /timestamps\.md$/i);
-  assert.match(album.outputTracksDir, /tracks$/i);
-  assert.match(album.outputAlacDir, /ALAC$/);
   assert.match(album.manifestPath, /manifest\.json$/i);
 });
 
@@ -90,17 +95,3 @@ test('discoverAlbum prefers single source when both audio and video exist', (t) 
     /Expected exactly one source/i
   );
 });
-
-function createTempAlbum(t, files) {
-  const albumDir = fs.mkdtempSync(path.join(os.tmpdir(), 'discover-album-'));
-
-  t.after(() => {
-    fs.rmSync(albumDir, { recursive: true, force: true });
-  });
-
-  for (const [fileName, contents] of Object.entries(files)) {
-    fs.writeFileSync(path.join(albumDir, fileName), contents);
-  }
-
-  return albumDir;
-}

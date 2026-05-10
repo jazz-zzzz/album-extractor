@@ -164,13 +164,7 @@ async function runBuild(manifestPath) {
   const result = await buildAlbum({ manifestPath, sourceDuration: params.duration, skipFlac: noFlac, useRefalac });
 
   console.log('');
-  console.log(`Build complete: ${result.completed} built, ${result.failures.length} failed`);
-  if (result.failures.length > 0) {
-    console.log('Failures:');
-    for (const f of result.failures) {
-      console.log(`  ✗ ${f.track}: ${f.error}`);
-    }
-  }
+  console.log(`Build complete: ${result.completed} built, 0 failed`);
 
   const manifest = readManifest(manifestPath);
   const baseDir = path.dirname(manifestPath);

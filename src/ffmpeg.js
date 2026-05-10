@@ -117,7 +117,6 @@ function buildExtractWavCommand({
   args.push(
     '-map_chapters', '-1',
     '-map', '0:a',
-    '-ar', '48000',
     outputPath,
   );
 
