@@ -63,7 +63,8 @@ Split concert/live recordings into clean, properly-named album tracks. The AI ag
 
 1. **File paths must be ASCII-safe.** Rename files with curly quotes `""`, fullwidth chars, or special Unicode before processing. Use `node -e "fs.renameSync(...)"` if needed. ffmpeg and shell will choke on these.
 2. **ffmpeg must be reachable.** Set `FFMPEG_HOME` env var pointing to the ffmpeg directory, or place ffmpeg.exe in `~/Downloads/`. The tool auto-resolves from these locations, then falls back to PATH.
-3. **Cover must be a real image file** (jpg/png). The `-ss`/`-to` placement in ffmpeg commands requires a valid second input stream for cover art.
+3. **Cover must be a real image file** (jpg/png). The ffmpeg command uses a second input stream for cover art attachment.
+4. **refalac (if using `--use-refalac`).** Download `qaac` from [github.com/nu774/qaac](https://github.com/nu774/qaac) and extract to `~/Downloads/qaac/`. The tool auto-discovers `refalac64.exe` from there. Only needed for sources that trigger ffmpeg ALAC compatibility issues (96kHz sample rate, embedded chapters in source).
 
 ## CLI Reference
 
@@ -85,10 +86,12 @@ node tool.js manifest \
 ### Build (split and encode)
 
 ```bash
-node tool.js build --manifest <manifest.json> [--no-flac]
+node tool.js build --manifest <manifest.json> [--no-flac] [--use-refalac]
 ```
 
 Requires `"approved": true` in manifest. Always overwrites existing output files. Produces `<output>/ALAC/*.m4a`, and `<output>/tracks/*.flac` unless `--no-flac` is set.
+
+`--use-refalac` switches the ALAC encoder from ffmpeg native (`alac`) to Apple's reference implementation (`refalac`). Use this when the source has high sample rate (96kHz) or embedded chapters that cause ffmpeg ALAC output to be rejected by Apple Music. refalac must be installed — download from [github.com/nu774/qaac](https://github.com/nu774/qaac), extract, and the tool auto-discovers `refalac64.exe` under `~/Downloads/qaac/`.
 
 ## Output Structure
 
