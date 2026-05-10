@@ -6,7 +6,7 @@ const path = require('node:path');
 const { discoverAlbum } = require('./src/discover-album');
 const { parseTimestamps } = require('./src/parse-timestamps');
 const { createManifestObject, writeManifest, readManifest } = require('./src/manifest');
-const { cleanTitle, isNonMusicTrack } = require('./src/titles');
+const { cleanTitle, isNonMusicTrack } = require('./src/normalize');
 const { buildAlbum } = require('./src/build-album');
 const { verifyOutput } = require('./src/verify');
 

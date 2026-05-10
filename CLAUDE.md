@@ -16,7 +16,7 @@ album-extractor/           ← git 仓库根（即本目录）
 │   ├── ffmpeg.js          # ffmpeg/refalac 命令构建
 │   ├── manifest.js        # manifest 读写
 │   ├── parse-timestamps.js# 时间戳 markdown 解析
-│   ├── titles.js          # 标题清洗（去翻译、MC 检测）
+│   ├── normalize.js       # 标题标准化（去翻译、MC 检测）
 │   └── verify.js          # 输出验证
 ├── tests/                 ← Node 原生 test runner
 ```

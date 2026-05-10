@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { cleanTitle, isNonMusicTrack } = require('../src/titles');
+const { cleanTitle, isNonMusicTrack } = require('../src/normalize');
 
 // ── cleanTitle ──
 
