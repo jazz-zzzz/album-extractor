@@ -22,7 +22,7 @@ Split concert/live recordings into album tracks. AI handles research and normali
 ```
 1. COLLECT  → Discover artist, album name, source, timestamps, cover from directory.
               Run `node tool.js manifest <album-dir>` to generate draft manifest.
-2. RESEARCH → Batch-search official setlist first, then match tracks in bulk.
+2. RESEARCH → Batch-search official setlist first (see reference for search priority).
               Only search individually for unmatched tracks. Use credibility tiers (see reference).
 3. REVIEW   → Run `node tool.js summary --manifest <path>` to show diff.
               Present only needs_review items to user. Set "approved": true when confirmed.

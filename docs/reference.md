@@ -122,3 +122,25 @@ node tool.js build --manifest <manifest.json> [--no-flac] [--use-refalac]
 3. **只对无法匹配的曲目逐首搜索**
 4. 搜索时使用艺人母语（如日文艺人用日文关键词）
 5. 每首 normalizedTitle 必须有 evidenceUrl
+
+### 搜索优先级
+
+按顺序尝试，找到完整 setlist 即停止：
+
+| 优先级 | 来源 | 搜索关键词示例 |
+|--------|------|--------------|
+| 1 | **艺人官网** `artist.jp` | `<艺人名> <场地> <日期> セットリスト` |
+| 2 | **setlist.fm** | `site:setlist.fm <artist> <venue>` |
+| 3 | **YouTube 官方频道** | `<artist> <live名称> セットリスト` — 视频描述常含完整曲顺 |
+| 4 | **日文音乐媒体** | ナタリー、rockin'on、音楽ナタリー、BARKS、Skream! — ライブレポート常附曲顺 |
+| 5 | **电商产品页** | Tower Records、Amazon.co.jp、HMV、楽天ブックス — Blu-ray/DVD 商品页有曲目表 |
+| 6 | **粉丝博客/Wiki** | Ameba、note、はてなブログ、w.atwiki.jp — ファン参加型のライブレポ |
+
+### 电商产品页搜索技巧
+
+Blu-ray/DVD 商品页是最可靠的 Tier A 来源：
+- **Tower Records**: `site:tower.jp <artist> <live名称>`
+- **Amazon.co.jp**: `site:amazon.co.jp <artist> Blu-ray セットリスト`
+- **HMV**: `site:hmv.co.jp <artist> <live名称>`
+
+商品页通常包含完整曲目表和官方封面图。

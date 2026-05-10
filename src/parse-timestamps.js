@@ -16,12 +16,15 @@ function normalizeTime(raw) {
   throw new Error(`Unsupported timestamp format: ${raw}`);
 }
 
+const TIMESTAMP_ONLY = /^\d{1,2}:\d{2}(:\d{2})?\s*$/;
+
 function parseTimestamps(markdownText) {
   const lines = markdownText
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
-    .filter((line) => !isSeparatorLine(line));
+    .filter((line) => !isSeparatorLine(line))
+    .filter((line) => !TIMESTAMP_ONLY.test(line));
 
   return lines.map((line, index) => parseTimestampLine(line, index));
 }

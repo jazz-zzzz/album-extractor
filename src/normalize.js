@@ -26,7 +26,10 @@ function cleanTitle(rawTitle) {
 }
 
 function isNonMusicTrack(rawTitle) {
-  return NON_MUSIC_PATTERN.test(rawTitle.trim());
+  // Strip parenthetical notes before testing — user annotations like （王炸开场）
+  // should not trigger MC detection. Only the core title matters.
+  const core = rawTitle.trim().replace(/[（(][^）)]*[）)]/g, '').trim();
+  return NON_MUSIC_PATTERN.test(core);
 }
 
 module.exports = { cleanTitle, isNonMusicTrack };
