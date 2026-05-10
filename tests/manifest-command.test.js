@@ -63,7 +63,7 @@ test('directory mode: node tool.js manifest <album-dir> writes draft manifest', 
   // MC track flagged as verified (not needs_review)
   const mcTrack = manifest.tracks.find((t) => t.rawTitle === 'MC环节');
   assert.notEqual(mcTrack, undefined);
-  assert.equal(mcTrack.normalizationStatus, 'verified');
+  assert.equal(mcTrack.normalizationStatus, 'not_applicable');
   assert.equal(mcTrack.lyricLookupTitle, null);
 });
 

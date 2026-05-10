@@ -72,7 +72,7 @@ function cleanTracks(tracks, artist) {
       return {
         ...track,
         normalizedTitle: track.rawTitle,
-        normalizationStatus: 'verified',
+        normalizationStatus: 'not_applicable',
         trackKind: 'mc',
         evidenceUrl: null,
         lyricLookupTitle: null,
@@ -125,7 +125,7 @@ async function runManifestExplicit() {
   writeManifest(manifestPath, manifest);
   console.log(`Manifest written: ${manifestPath}`);
 
-  printSummary(cleanedTracks);
+  printSummary(tracksWithIntro);
 }
 
 // ── manifest: directory mode ──
@@ -154,7 +154,7 @@ async function runManifestDirectory(albumDir, artistOverride) {
   writeManifest(album.manifestPath, manifest);
   console.log(`Manifest written: ${album.manifestPath}`);
 
-  printSummary(cleanedTracks);
+  printSummary(tracksWithIntro);
 }
 
 function ensureIntroTrack(tracks) {
@@ -168,7 +168,7 @@ function ensureIntroTrack(tracks) {
     end: first.start,
     rawTitle: 'Intro',
     normalizedTitle: 'Intro',
-    normalizationStatus: 'verified',
+    normalizationStatus: 'not_applicable',
     trackKind: 'intro',
     evidenceUrl: null,
     lyricLookupTitle: null,
