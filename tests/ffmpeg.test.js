@@ -26,7 +26,7 @@ test('buildFlacCommand includes required metadata', () => {
   assert.ok(cmd.includes('-c:a'));
   assert.equal(cmd[cmd.indexOf('-c:a') + 1], 'flac');
   assert.ok(cmd.includes('-ss'));
-  assert.ok(cmd.includes('-to'));
+  assert.ok(cmd.includes('-t'));
   assert.ok(cmd.includes('-metadata'));
   assert.ok(cmd.includes('title=Ame (B)'));
   assert.ok(cmd.includes('album=SAKANAQUARIUM 2024 turn'));
@@ -44,11 +44,11 @@ test('buildAlacCommand includes attached_pic disposition', () => {
   assert.equal(cmd[cmd.indexOf('-disposition:v:0') + 1], 'attached_pic');
 });
 
-test('buildFlacCommand omits -to when track.end is null', () => {
+test('buildFlacCommand omits -t when track.end is null', () => {
   const track = { ...defaultTrack, end: null };
   const cmd = buildFlacCommand({ ...defaultOpts, track, outputPath: 'out.flac' });
 
-  assert.ok(!cmd.includes('-to'));
+  assert.ok(!cmd.includes('-t'));
 });
 
 test('both commands embed lyrics when present', () => {
