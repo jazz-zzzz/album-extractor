@@ -148,6 +148,7 @@ async function fetchGeniusLyrics(url) {
 // ── LRC to plain text ──
 
 const LRC_META_RE = /^\[[a-z]+:.*\]$/i;
+const CREDIT_RE = /^(作[词詞曲]|编[曲曲]|編曲|制作|プロデュース)\s*[:：]/;
 
 function lrcToPlain(lrc) {
   return lrc
@@ -155,6 +156,7 @@ function lrcToPlain(lrc) {
     .filter((line) => !LRC_META_RE.test(line.trim()))
     .map((line) => line.replace(/\[\d{2}:\d{2}[.:]\d{2,3}\]/g, '').trim())
     .filter(Boolean)
+    .filter((line) => !CREDIT_RE.test(line))
     .join('\n');
 }
 

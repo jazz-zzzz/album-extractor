@@ -7,14 +7,16 @@ const { discoverAlbum } = require('./src/discover-album');
 const { parseTimestamps } = require('./src/parse-timestamps');
 const { createManifestObject, writeManifest, readManifest } = require('./src/manifest');
 const { cleanTitle, isNonMusicTrack } = require('./src/normalize');
-const { buildAlbum } = require('./src/build-album');
+const { buildAlbum, resolveBinary } = require('./src/build-album');
 const { verifyOutput } = require('./src/verify');
 const { formatError } = require('./src/errors');
+const { buildTrackFileName } = require('./src/ffmpeg');
+const { spawn } = require('node:child_process');
 const lyrics = require('./src/lyrics');
 
 // ── argument parsing (CLI only) ──
 
-let command, params, flags, positional, noFlac, useRefalac;
+let command, params, flags, positional, noFlac, useRefalac, embedLyrics;
 
 if (require.main === module) {
   const raw = process.argv.slice(2);
@@ -54,6 +56,7 @@ if (require.main === module) {
 
   noFlac = flags.has('--no-flac');
   useRefalac = flags.has('--use-refalac');
+  embedLyrics = flags.has('--embed');
 }
 
 function resolveSourceDir(sourcePath) {
@@ -254,7 +257,29 @@ async function runBuild(manifestPath) {
 
 // ── lyrics ──
 
-async function runLyrics(manifestPath) {
+async function embedLyricsInFile(trackPath, lyrics) {
+  const tmpPath = trackPath + '.tmp';
+  const ext = path.extname(trackPath).toLowerCase();
+
+  return new Promise((resolve, reject) => {
+    const args = ['-i', trackPath, '-c', 'copy', '-map', '0', '-metadata', `lyrics=${lyrics}`, tmpPath];
+    const proc = spawn(resolveBinary('ffmpeg'), args, { stdio: 'pipe' });
+    let stderr = '';
+    proc.stderr.on('data', (d) => { stderr += d; });
+    proc.on('close', (code) => {
+      if (code === 0) {
+        try { fs.renameSync(tmpPath, trackPath); resolve(true); }
+        catch (e) { reject(e); }
+      } else {
+        try { fs.unlinkSync(tmpPath); } catch (_) {}
+        reject(new Error(`ffmpeg exit ${code}: ${stderr.slice(-200)}`));
+      }
+    });
+    proc.on('error', reject);
+  });
+}
+
+async function runLyrics(manifestPath, embed = false) {
   const manifest = readManifest(manifestPath);
   const baseDir = path.dirname(manifestPath);
 
@@ -296,7 +321,23 @@ async function runLyrics(manifestPath) {
         track.lyricSource = result.source;
         track.lyricPath = `lyrics/${filename}`;
 
-        console.log(`OK (${result.source}, ${result.text.split('\n').length} lines)`);
+        let embedStatus = '';
+        if (embed) {
+          const alacDir = path.join(baseDir, 'ALAC');
+          const flacDir = path.join(baseDir, 'tracks');
+          for (const [dir, ext] of [[alacDir, 'm4a'], [flacDir, 'flac']]) {
+            if (!fs.existsSync(dir)) continue;
+            const trackFile = path.join(dir, buildTrackFileName(track, ext));
+            if (!fs.existsSync(trackFile)) continue;
+            try {
+              await embedLyricsInFile(trackFile, result.text);
+            } catch (_) {
+              embedStatus += ` embed-${ext}:failed`;
+            }
+          }
+        }
+
+        console.log(`OK (${result.source}, ${result.text.split('\n').length} lines${embedStatus})`);
         ok++;
       } else {
         track.lyricSource = 'not_found';
@@ -362,7 +403,8 @@ if (require.main === module) {
     } else if (command === 'lyrics') {
       const manifestPath = params.manifest || path.join(positional[0] || '.', 'manifest.json');
       runLyrics(
-        path.isAbsolute(manifestPath) ? manifestPath : path.resolve(manifestPath)
+        path.isAbsolute(manifestPath) ? manifestPath : path.resolve(manifestPath),
+        embedLyrics
       ).catch((error) => {
         console.error(error.message);
         process.exit(1);

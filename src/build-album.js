@@ -239,4 +239,4 @@ async function buildAlbum({ manifestPath, sourceDuration, skipFlac, useRefalac }
   return { total, completed: built, failures };
 }
 
-module.exports = { buildAlbum, assertApprovedManifest, resolveTrackEnds, getSourceDuration };
+module.exports = { buildAlbum, assertApprovedManifest, resolveTrackEnds, getSourceDuration, resolveBinary };
