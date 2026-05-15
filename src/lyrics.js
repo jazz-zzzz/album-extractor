@@ -5,7 +5,7 @@ const zlib = require('node:zlib');
 
 // ── HTTP helpers ──
 
-const PROXY_URL = process.env.HTTP_PROXY || process.env.HTTPS_PROXY || 'http://127.0.0.1:7897';
+const PROXY_URL = process.env.HTTP_PROXY || process.env.HTTPS_PROXY || null;
 
 function proxyTunnel(hostname, port) {
   return new Promise((resolve, reject) => {
@@ -38,7 +38,8 @@ function request(opts) {
 
     function handleRes(res) {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        return resolve(request({ ...opts, url: res.headers.location }));
+        const redirectUrl = new URL(res.headers.location, opts.url).href;
+        return resolve(request({ ...opts, url: redirectUrl }));
       }
       if (res.statusCode !== 200) {
         return reject(new Error(`HTTP ${res.statusCode} from ${opts.url}`));
@@ -62,6 +63,11 @@ function request(opts) {
 
     function doReq() {
       const req = https.get(reqOpts, handleRes);
+      req.setTimeout(15000);
+      req.on('timeout', () => {
+        req.destroy();
+        reject(new Error('Request timed out'));
+      });
       req.on('error', reject);
       req.end();
     }
@@ -69,7 +75,13 @@ function request(opts) {
     if (PROXY_URL && new URL(PROXY_URL).hostname) {
       proxyTunnel(u.hostname, u.port || 443)
         .then((socket) => {
-          https.get({ ...reqOpts, socket, agent: false }, handleRes).on('error', reject);
+          const pReq = https.get({ ...reqOpts, socket, agent: false }, handleRes);
+          pReq.setTimeout(15000);
+          pReq.on('timeout', () => {
+            pReq.destroy();
+            reject(new Error('Request timed out'));
+          });
+          pReq.on('error', reject);
         })
         .catch(() => doReq());
     } else {
@@ -135,9 +147,12 @@ async function fetchGeniusLyrics(url) {
 
 // ── LRC to plain text ──
 
+const LRC_META_RE = /^\[[a-z]+:.*\]$/i;
+
 function lrcToPlain(lrc) {
   return lrc
     .split('\n')
+    .filter((line) => !LRC_META_RE.test(line.trim()))
     .map((line) => line.replace(/\[\d{2}:\d{2}[.:]\d{2,3}\]/g, '').trim())
     .filter(Boolean)
     .join('\n');
@@ -145,21 +160,46 @@ function lrcToPlain(lrc) {
 
 // ── Main entry point ──
 
+function formatGeniusSlug(str) {
+  return str
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9\p{L}-]/giu, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
 async function fetchLyricsForTrack(artist, title) {
+  // 1) Try Netease Cloud Music
   const keyword = `${artist} ${title}`.trim();
   const results = await searchNetease(keyword);
-  if (results.length === 0) return null;
+  if (results.length > 0) {
+    const best = results[0];
+    const lyricData = await fetchNeteaseLyrics(best.id);
+    if (lyricData && lyricData.lrc) {
+      return {
+        text: lrcToPlain(lyricData.lrc),
+        source: 'netease',
+        neteaseId: best.id,
+        neteaseTitle: best.title,
+      };
+    }
+  }
 
-  const best = results[0];
-  const lyricData = await fetchNeteaseLyrics(best.id);
-  if (!lyricData || !lyricData.lrc) return null;
+  // 2) Fall back to Genius
+  try {
+    const artistSlug = formatGeniusSlug(artist);
+    const titleSlug = formatGeniusSlug(title);
+    const geniusUrl = `https://genius.com/${artistSlug}-${titleSlug}-lyrics`;
+    const lyrics = await fetchGeniusLyrics(geniusUrl);
+    if (lyrics) {
+      return { text: lyrics, source: 'genius' };
+    }
+  } catch {
+    // best-effort — ignore any error and return null below
+  }
 
-  return {
-    text: lrcToPlain(lyricData.lrc),
-    source: 'netease',
-    neteaseId: best.id,
-    neteaseTitle: best.title,
-  };
+  return null;
 }
 
 module.exports = { fetchLyricsForTrack, searchNetease, fetchNeteaseLyrics, fetchGeniusLyrics, lrcToPlain, request };
