@@ -42,13 +42,14 @@ albums/SAKANAQUARIUM 2024 turn/
 
 > Process albums/SAKANAQUARIUM\ 2024\ turn
 
-Claude Code runs four steps:
+Claude Code runs five steps:
 
 ```
 1. COLLECT  → Discover artist, album name, source, timestamps, cover.
 2. RESEARCH → Web-search official setlist, normalize album + track titles.
 3. REVIEW   → Present diff summary. You confirm or edit. Set "approved": true.
 4. BUILD    → 10-worker parallel split + encode. ALAC output ready.
+5. LYRICS   → Fetch lyrics from Netease. Add --embed to write into audio metadata.
 ```
 
 ### What you get
@@ -62,13 +63,14 @@ albums/SAKANAQUARIUM 2024 turn/
 
 ## How it works
 
-Three CLI commands, invoked by Claude Code on your behalf:
+Four CLI commands, invoked by Claude Code on your behalf:
 
 | Command | Purpose |
 |---------|---------|
 | `node tool.js manifest <album-dir>` | Parse timestamps, generate draft manifest |
 | `node tool.js summary --manifest <path>` | Show review summary (diff only) |
 | `node tool.js build --manifest <path>` | Split + encode approved manifest |
+| `node tool.js lyrics --manifest <path>` | Fetch lyrics from Netease Cloud Music |
 
 **The manifest is the contract.** The AI fills in normalized titles and evidence URLs. You review and set `"approved": true`. The build will not run without it.
 
@@ -78,24 +80,26 @@ Three CLI commands, invoked by Claude Code on your behalf:
 |------|--------|
 | `--no-flac` | Skip FLAC output, only build ALAC |
 | `--use-refalac` | Use Apple reference ALAC encoder instead of ffmpeg native |
+| `--embed` | (with `lyrics`) Embed lyrics into audio file metadata (ALAC/FLAC) |
 
 ## Project structure
 
 ```
 ├── SKILL.md              ← Skill definition — the AI agent's behavioral contract
-├── tool.js               ← CLI entry point (manifest / summary / build)
+├── tool.js               ← CLI entry point (manifest / summary / build / lyrics)
 ├── src/
 │   ├── build-album.js    ← 10-worker parallel build (ffmpeg + refalac)
 │   ├── discover-album.js ← Auto-discover album directory structure
 │   ├── errors.js         ← Short error codes
 │   ├── ffmpeg.js         ← ffmpeg/refalac command builder
+│   ├── lyrics.js         ← Lyrics fetcher (Netease API + Genius fallback)
 │   ├── manifest.js       ← Manifest read/write (with normalizationStatus + trackKind)
 │   ├── normalize.js      ← Title cleaning (strip translations, detect MC)
 │   ├── parse-timestamps.js ← Timestamp markdown parser
 │   └── verify.js         ← Output verification
 ├── docs/
 │   └── reference.md      ← Credibility tiers, field tables, error codes, Pre-Flight
-├── tests/                ← Node native test runner (43 tests)
+├── tests/                ← Node native test runner (54 tests)
 ├── CLAUDE.md
 └── AGENTS.md
 ```
@@ -107,7 +111,7 @@ Three CLI commands, invoked by Claude Code on your behalf:
 - Output goes to new directories. Original files untouched.
 - Video sources (.mkv, .mp4) supported — audio stream extracted via `-map 0:a`.
 - Requires `timestamps.md`. No timestamps = nothing to split.
-- Lyrics are off by default; only fetched on explicit user request.
+- Lyrics fetched from Netease Cloud Music on request. `--embed` writes them into audio metadata.
 
 ## License
 
