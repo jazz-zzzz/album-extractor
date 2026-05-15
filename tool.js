@@ -10,47 +10,51 @@ const { cleanTitle, isNonMusicTrack } = require('./src/normalize');
 const { buildAlbum } = require('./src/build-album');
 const { verifyOutput } = require('./src/verify');
 const { formatError } = require('./src/errors');
-const { fetchLyricsForTrack } = require('./src/lyrics');
+const lyrics = require('./src/lyrics');
 
-// ── argument parsing ──
+// ── argument parsing (CLI only) ──
 
-const raw = process.argv.slice(2);
+let command, params, flags, positional, noFlac, useRefalac;
 
-const commandIdx = raw.findIndex((a) => !a.startsWith('-'));
-if (commandIdx === -1) {
-  console.error('Usage: node tool.js <manifest|build|summary|lyrics> [options]');
-  process.exit(1);
-}
-const command = raw[commandIdx];
+if (require.main === module) {
+  const raw = process.argv.slice(2);
 
-const rest = raw.slice(commandIdx + 1);
-const params = {};
-const flags = new Set();
-const positional = [];
-for (let i = 0; i < rest.length; i++) {
-  const arg = rest[i];
-  if (arg.startsWith('--')) {
-    const key = arg.slice(2);
-    const next = rest[i + 1];
-    if (next && !next.startsWith('--')) {
-      params[key] = next;
-      i++;
-    } else {
-      flags.add('--' + key);
-    }
-  } else {
-    positional.push(arg);
+  const commandIdx = raw.findIndex((a) => !a.startsWith('-'));
+  if (commandIdx === -1) {
+    console.error('Usage: node tool.js <manifest|build|summary|lyrics> [options]');
+    process.exit(1);
   }
-}
+  command = raw[commandIdx];
 
-const validCommands = new Set(['manifest', 'build', 'summary', 'lyrics']);
-if (!validCommands.has(command)) {
-  console.error('Usage: node tool.js <manifest|build|summary|lyrics> [options]');
-  process.exit(1);
-}
+  const rest = raw.slice(commandIdx + 1);
+  params = {};
+  flags = new Set();
+  positional = [];
+  for (let i = 0; i < rest.length; i++) {
+    const arg = rest[i];
+    if (arg.startsWith('--')) {
+      const key = arg.slice(2);
+      const next = rest[i + 1];
+      if (next && !next.startsWith('--')) {
+        params[key] = next;
+        i++;
+      } else {
+        flags.add('--' + key);
+      }
+    } else {
+      positional.push(arg);
+    }
+  }
 
-const noFlac = flags.has('--no-flac');
-const useRefalac = flags.has('--use-refalac');
+  const validCommands = new Set(['manifest', 'build', 'summary', 'lyrics']);
+  if (!validCommands.has(command)) {
+    console.error('Usage: node tool.js <manifest|build|summary|lyrics> [options]');
+    process.exit(1);
+  }
+
+  noFlac = flags.has('--no-flac');
+  useRefalac = flags.has('--use-refalac');
+}
 
 function resolveSourceDir(sourcePath) {
   return path.join(
@@ -275,7 +279,7 @@ async function runLyrics(manifestPath) {
     process.stdout.write(`  ${prefix} ${track.normalizedTitle} ... `);
 
     try {
-      const result = await fetchLyricsForTrack(
+      const result = await lyrics.fetchLyricsForTrack(
         manifest.artist,
         track.lyricLookupTitle || track.normalizedTitle
       );
@@ -311,52 +315,58 @@ async function runLyrics(manifestPath) {
   console.log(`\nDone: ${ok} fetched, ${failed} not found. Manifest updated.`);
 }
 
+// ── exports ──
+
+module.exports = { runManifestDirectory, runManifestExplicit, runSummary, runBuild, runLyrics, cleanTracks, ensureIntroTrack, printSummary };
+
 // ── dispatch ──
 
-try {
-  if (command === 'manifest') {
-    if (params.source) {
-      runManifestExplicit().catch((error) => {
+if (require.main === module) {
+  try {
+    if (command === 'manifest') {
+      if (params.source) {
+        runManifestExplicit().catch((error) => {
+          console.error(error.message);
+          process.exit(1);
+        });
+      } else {
+        if (positional.length === 0) {
+          console.error(
+            'Usage: node tool.js manifest <album-dir> [--artist <name>]\n' +
+            '       node tool.js manifest --artist <name> --album <name> --source <path> --timestamps <path> --cover <path> [--output <dir>]'
+          );
+          process.exit(1);
+        }
+        const albumDir = positional[0];
+        const artist = params.artist || null;
+        runManifestDirectory(
+          path.isAbsolute(albumDir) ? albumDir : path.resolve(albumDir),
+          artist
+        ).catch((error) => {
+          console.error(error.message);
+          process.exit(1);
+        });
+      }
+    } else if (command === 'build') {
+      const manifestPath = params.manifest || path.join(positional[0] || '.', 'manifest.json');
+      runBuild(path.isAbsolute(manifestPath) ? manifestPath : path.resolve(manifestPath)).catch((error) => {
         console.error(error.message);
         process.exit(1);
       });
-    } else {
-      if (positional.length === 0) {
-        console.error(
-          'Usage: node tool.js manifest <album-dir> [--artist <name>]\n' +
-          '       node tool.js manifest --artist <name> --album <name> --source <path> --timestamps <path> --cover <path> [--output <dir>]'
-        );
-        process.exit(1);
-      }
-      const albumDir = positional[0];
-      const artist = params.artist || null;
-      runManifestDirectory(
-        path.isAbsolute(albumDir) ? albumDir : path.resolve(albumDir),
-        artist
+    } else if (command === 'summary') {
+      const manifestPath = params.manifest || path.join(positional[0] || '.', 'manifest.json');
+      runSummary(path.isAbsolute(manifestPath) ? manifestPath : path.resolve(manifestPath));
+    } else if (command === 'lyrics') {
+      const manifestPath = params.manifest || path.join(positional[0] || '.', 'manifest.json');
+      runLyrics(
+        path.isAbsolute(manifestPath) ? manifestPath : path.resolve(manifestPath)
       ).catch((error) => {
         console.error(error.message);
         process.exit(1);
       });
     }
-  } else if (command === 'build') {
-    const manifestPath = params.manifest || path.join(positional[0] || '.', 'manifest.json');
-    runBuild(path.isAbsolute(manifestPath) ? manifestPath : path.resolve(manifestPath)).catch((error) => {
-      console.error(error.message);
-      process.exit(1);
-    });
-  } else if (command === 'summary') {
-    const manifestPath = params.manifest || path.join(positional[0] || '.', 'manifest.json');
-    runSummary(path.isAbsolute(manifestPath) ? manifestPath : path.resolve(manifestPath));
-  } else if (command === 'lyrics') {
-    const manifestPath = params.manifest || path.join(positional[0] || '.', 'manifest.json');
-    runLyrics(
-      path.isAbsolute(manifestPath) ? manifestPath : path.resolve(manifestPath)
-    ).catch((error) => {
-      console.error(error.message);
-      process.exit(1);
-    });
+  } catch (error) {
+    console.error(error.message);
+    process.exit(1);
   }
-} catch (error) {
-  console.error(error.message);
-  process.exit(1);
 }
