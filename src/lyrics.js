@@ -160,6 +160,31 @@ function lrcToPlain(lrc) {
     .join('\n');
 }
 
+// ── LRC to Apple TTML (timed lyrics for Music app) ──
+
+// Wrap plain lyrics in Apple TTML for full-screen display without time sync.
+// Single static <p> block spanning 24h — Apple Music shows all lyrics at once.
+function lrcToTtml(lrc) {
+  const plain = lrcToPlain(lrc);
+  if (!plain) return null;
+
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<tt xmlns="http://www.w3.org/ns/ttml" xmlns:itunes="http://music.apple.com/lyric/1.0">',
+    '  <head/>',
+    '  <body>',
+    '    <div>',
+    `      <p begin="00:00:00.000" end="99:59:59.999">${escapeXml(plain)}</p>`,
+    '    </div>',
+    '  </body>',
+    '</tt>',
+  ].join('\n');
+}
+
+function escapeXml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 // ── Main entry point ──
 
 function formatGeniusSlug(str) {
@@ -181,6 +206,7 @@ async function fetchLyricsForTrack(artist, title) {
     if (lyricData && lyricData.lrc) {
       return {
         text: lrcToPlain(lyricData.lrc),
+        ttlm: lrcToTtml(lyricData.lrc),
         source: 'netease',
         neteaseId: best.id,
         neteaseTitle: best.title,

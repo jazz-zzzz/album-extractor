@@ -323,6 +323,7 @@ async function runLyrics(manifestPath, embed = false) {
 
         let embedStatus = '';
         if (embed) {
+          const embedText = result.ttlm || result.text;
           const alacDir = path.join(baseDir, 'ALAC');
           const flacDir = path.join(baseDir, 'tracks');
           for (const [dir, ext] of [[alacDir, 'm4a'], [flacDir, 'flac']]) {
@@ -330,7 +331,7 @@ async function runLyrics(manifestPath, embed = false) {
             const trackFile = path.join(dir, buildTrackFileName(track, ext));
             if (!fs.existsSync(trackFile)) continue;
             try {
-              await embedLyricsInFile(trackFile, result.text);
+              await embedLyricsInFile(trackFile, embedText);
             } catch (_) {
               embedStatus += ` embed-${ext}:failed`;
             }
